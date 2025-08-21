@@ -14,11 +14,19 @@ class CPV_Shortcode {
     }
     
     public function render_shortcode($atts) {
+        // Get settings defaults
+        $settings = get_option('cpv_settings', array());
+        
+        // Use settings as defaults
+        $default_width = isset($settings['width']) ? $settings['width'] : '1200px';
+        $default_height = isset($settings['height']) ? $settings['height'] : '600px';
+        $default_theme = isset($settings['theme']) ? $settings['theme'] : 'light';
+        
         // Parse attributes
         $atts = shortcode_atts(array(
-            'width' => '1200',
-            'height' => '600',
-            'theme' => 'professional'
+            'width' => $default_width,
+            'height' => $default_height,
+            'theme' => $default_theme
         ), $atts, 'career_progression');
         
         // Generate unique ID for this instance
@@ -27,7 +35,21 @@ class CPV_Shortcode {
         ob_start();
         ?>
         <div class="cpv-container cpv-theme-<?php echo esc_attr($atts['theme']); ?>" data-theme="<?php echo esc_attr($atts['theme']); ?>">
-            <div id="<?php echo esc_attr($chart_id); ?>" class="cpv-chart" style="width: <?php echo strpos($atts['width'], '%') !== false ? esc_attr($atts['width']) : esc_attr($atts['width']) . 'px'; ?>; height: <?php echo strpos($atts['height'], '%') !== false ? esc_attr($atts['height']) : esc_attr($atts['height']) . 'px'; ?>;">
+            <div id="<?php echo esc_attr($chart_id); ?>" class="cpv-chart" style="width: <?php 
+                $width = $atts['width'];
+                if (strpos($width, '%') !== false || strpos($width, 'px') !== false) {
+                    echo esc_attr($width);
+                } else {
+                    echo esc_attr($width) . 'px';
+                }
+            ?>; height: <?php 
+                $height = $atts['height'];
+                if (strpos($height, '%') !== false || strpos($height, 'px') !== false) {
+                    echo esc_attr($height);
+                } else {
+                    echo esc_attr($height) . 'px';
+                }
+            ?>;">
                 <div class="cpv-loading">
                     <span class="cpv-spinner"></span>
                     <p><?php _e('Loading career progression...', 'career-progression'); ?></p>

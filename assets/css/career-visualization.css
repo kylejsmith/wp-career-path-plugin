@@ -290,42 +290,6 @@
     }
 }
 
-/* Theme: Professional - Clean business style */
-.cpv-container.cpv-theme-professional {
-    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-    border: 1px solid #1a252f;
-    box-shadow: 0 8px 24px rgba(44, 62, 80, 0.15);
-}
-
-.cpv-container.cpv-theme-professional .cpv-chart {
-    background: rgba(236, 240, 241, 0.95);
-    border-radius: 8px;
-    padding: 10px;
-}
-
-.cpv-container.cpv-theme-professional .cpv-btn {
-    background: #3498db;
-    border-radius: 4px;
-    color: white;
-}
-
-.cpv-container.cpv-theme-professional .cpv-btn:hover {
-    background: #2980b9;
-}
-
-.cpv-container.cpv-theme-professional .cpv-spinner {
-    border-color: #bdc3c7;
-    border-top-color: #3498db;
-}
-
-.cpv-container.cpv-theme-professional text,
-.cpv-container.cpv-theme-professional .node-label {
-    fill: #2c3e50;
-}
-
-.cpv-container.cpv-theme-professional .cpv-loading p {
-    color: #34495e;
-}
 
 /* Theme: Light - Bright and clean */
 .cpv-container.cpv-theme-light {

@@ -11,10 +11,7 @@
                 </th>
                 <td>
                     <select id="cpv_theme" name="cpv_settings[theme]">
-                        <option value="professional" <?php selected($settings['theme'] ?? 'professional', 'professional'); ?>>
-                            <?php _e('Professional', 'career-progression'); ?>
-                        </option>
-                        <option value="light" <?php selected($settings['theme'] ?? '', 'light'); ?>>
+                        <option value="light" <?php selected($settings['theme'] ?? 'light', 'light'); ?>>
                             <?php _e('Light', 'career-progression'); ?>
                         </option>
                         <option value="dark" <?php selected($settings['theme'] ?? '', 'dark'); ?>>
@@ -27,6 +24,33 @@
                 </td>
             </tr>
             
+            <tr>
+                <th scope="row">
+                    <label for="cpv_width"><?php _e('Default Width', 'career-progression'); ?></label>
+                </th>
+                <td>
+                    <input type="text" id="cpv_width" name="cpv_settings[width]" 
+                           value="<?php echo esc_attr($settings['width'] ?? '1200px'); ?>" 
+                           class="regular-text" />
+                    <p class="description">
+                        <?php _e('Enter width in pixels (e.g., 1200 or 1200px) or percentage (e.g., 100%)', 'career-progression'); ?>
+                    </p>
+                </td>
+            </tr>
+            
+            <tr>
+                <th scope="row">
+                    <label for="cpv_height"><?php _e('Default Height', 'career-progression'); ?></label>
+                </th>
+                <td>
+                    <input type="text" id="cpv_height" name="cpv_settings[height]" 
+                           value="<?php echo esc_attr($settings['height'] ?? '600px'); ?>" 
+                           class="regular-text" />
+                    <p class="description">
+                        <?php _e('Enter height in pixels (e.g., 600 or 600px) or percentage (e.g., 80%)', 'career-progression'); ?>
+                    </p>
+                </td>
+            </tr>
             
             <tr>
                 <th scope="row">
@@ -72,8 +96,9 @@
         <div style="margin-bottom: 20px;">
             <p style="color: #666; margin-bottom: 10px;">
                 <?php _e('Example shortcode usage:', 'career-progression'); ?><br>
-                <code>[career_progression]</code> - Default (1200px wide)<br>
-                <code>[career_progression width="100%" height="800"]</code> - Full width<br>
+                <code>[career_progression]</code> - Uses settings defaults<br>
+                <code>[career_progression width="100%" height="800px"]</code> - Full width, 800px height<br>
+                <code>[career_progression width="1400px" height="700px"]</code> - Custom pixel dimensions<br>
                 <code>[career_progression width="80%" theme="dark"]</code> - 80% width, dark theme
             </p>
             
@@ -104,11 +129,15 @@
         
         // Function to parse shortcode attributes
         function parseShortcode(shortcode) {
+            // Get defaults from settings fields
+            const defaultWidth = $('#cpv_width').val() || '1200px';
+            const defaultHeight = $('#cpv_height').val() || '600px';
+            
             const attrs = {
                 type: 'tree',
-                width: '1200',
-                height: '600',
-                theme: $('#cpv_theme').val() || 'professional'
+                width: defaultWidth,
+                height: defaultHeight,
+                theme: $('#cpv_theme').val() || 'light'
             };
             
             // Extract attributes from shortcode
@@ -127,11 +156,11 @@
             const attrs = parseShortcode(shortcode);
             
             // Apply current settings from dropdown (override what was in shortcode)
-            attrs.theme = $('#cpv_theme').val() || 'professional';
+            attrs.theme = $('#cpv_theme').val() || 'light';
             
             // Clear previous preview
-            const widthStyle = attrs.width.includes('%') ? attrs.width : attrs.width + 'px';
-            const heightStyle = attrs.height.includes('%') ? attrs.height : attrs.height + 'px';
+            const widthStyle = attrs.width.includes('%') || attrs.width.includes('px') ? attrs.width : attrs.width + 'px';
+            const heightStyle = attrs.height.includes('%') || attrs.height.includes('px') ? attrs.height : attrs.height + 'px';
             
             $('#cpv-settings-preview').html(`
                 <div class="cpv-container cpv-theme-${attrs.theme}" style="width: ${widthStyle}; margin: 0 auto;">
@@ -171,8 +200,28 @@
         });
         
         // Auto-update preview when settings change
-        $('#cpv_theme, #cpv_date_format').on('change', function() {
+        $('#cpv_theme, #cpv_date_format, #cpv_width, #cpv_height').on('change', function() {
             renderPreview();
+        });
+        
+        // Auto-format width/height fields when user enters just a number
+        $('#cpv_width, #cpv_height').on('blur', function() {
+            let value = $(this).val().trim();
+            
+            // If it's just a number (no px or %), add px
+            if (value && /^\d+$/.test(value)) {
+                $(this).val(value + 'px');
+            }
+        });
+        
+        // Also update on form submit to ensure proper formatting
+        $('form').on('submit', function() {
+            $('#cpv_width, #cpv_height').each(function() {
+                let value = $(this).val().trim();
+                if (value && /^\d+$/.test(value)) {
+                    $(this).val(value + 'px');
+                }
+            });
         });
     });
     </script>

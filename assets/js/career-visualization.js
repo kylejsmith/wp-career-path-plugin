@@ -144,23 +144,55 @@ function createHierarchicalVisualization(chartId, data) {
         .domain([domainMin, domainMax])
         .range([20, width - 20]);
     
-    // Adjust node positions based on time (now using x for time)
+    // First pass: adjust node positions based on time
     root.descendants().forEach(node => {
-        // Store the original x position as the vertical position
-        const verticalPos = node.x;
-        const horizontalPos = node.y;
-        
         if (node.data.startYear) {
+            // Position job nodes based on time
             node.x = timeScale(node.data.startYear);
-            node.y = verticalPos;
-        } else if (node.data.type === 'path' && node.children && node.children.length > 0) {
-            const earliestYear = Math.min(...node.children.map(child => child.data.startYear || domainMax));
-            // Move path nodes to the left to make room for labels
-            node.x = timeScale(earliestYear) - 80;
-            node.y = verticalPos;
-        } else {
-            // Swap x and y for non-dated nodes
-            node.y = verticalPos;
+        }
+    });
+    
+    // Find the y positions of each path after tree layout
+    const pathNodes = root.descendants().filter(d => d.data.type === 'path');
+    const pathPositions = pathNodes.map(d => ({
+        name: d.data.name,
+        y: d.x,  // Use x because tree is rotated
+        color: d.data.color
+    })).sort((a, b) => a.y - b.y);
+    
+    // Calculate lane boundaries with proper spacing
+    const laneHeight = height / pathPositions.length;
+    const lanes = pathPositions.map((path, i) => ({
+        name: path.name,  
+        color: path.color,
+        top: i * laneHeight,
+        bottom: (i + 1) * laneHeight,
+        centerY: i * laneHeight + laneHeight / 2
+    }));
+    
+    // Second pass: adjust vertical positions based on lanes
+    root.descendants().forEach(node => {
+        if (node.data.type === 'path') {
+            // Find the lane for this path
+            const laneIndex = lanes.findIndex(l => l.name === node.data.name);
+            if (laneIndex >= 0) {
+                const lane = lanes[laneIndex];
+                // Center path nodes vertically in their lane
+                node.y = lane.centerY;
+                // Position path nodes off to the left
+                node.x = -50;
+            }
+        } else if (node.data.type === 'job') {
+            // Find parent path to determine lane
+            const pathAncestor = node.ancestors().find(a => a.data.type === 'path');
+            if (pathAncestor) {
+                const laneIndex = lanes.findIndex(l => l.name === pathAncestor.data.name);
+                if (laneIndex >= 0) {
+                    const lane = lanes[laneIndex];
+                    // Center job nodes vertically in their lane
+                    node.y = lane.centerY;
+                }
+            }
         }
     });
     
@@ -170,31 +202,18 @@ function createHierarchicalVisualization(chartId, data) {
         tickValues.push(year);
     }
     
-    // Find the y positions of each path for grid lines and backgrounds
-    const pathNodes = root.descendants().filter(d => d.data.type === 'path');
-    const pathPositions = pathNodes.map(d => ({
-        name: d.data.name,
-        y: d.y,
-        color: d.data.color
-    })).sort((a, b) => a.y - b.y);
-    
     // Add colored background bands for each path
     const backgroundBands = svgGroup.append('g')
         .attr('class', 'path-backgrounds');
     
-    pathPositions.forEach((path, i) => {
-        const nextY = i < pathPositions.length - 1 ? pathPositions[i + 1].y : height;
-        const prevY = i > 0 ? pathPositions[i - 1].y : 0;
-        const bandTop = (prevY + path.y) / 2;
-        const bandBottom = (path.y + nextY) / 2;
-        
+    lanes.forEach(lane => {
         // Add colored background band
         backgroundBands.append('rect')
             .attr('x', -margin.left)
-            .attr('y', bandTop)
+            .attr('y', lane.top)
             .attr('width', width + margin.left + margin.right)
-            .attr('height', bandBottom - bandTop)
-            .style('fill', path.color)
+            .attr('height', lane.bottom - lane.top)
+            .style('fill', lane.color)
             .style('opacity', 0.05);
     });
     
@@ -202,16 +221,14 @@ function createHierarchicalVisualization(chartId, data) {
     const gridLines = svgGroup.append('g')
         .attr('class', 'grid-lines');
     
-    pathPositions.forEach((path, i) => {
+    lanes.forEach((lane, i) => {
         if (i > 0) {
-            const prevPath = pathPositions[i - 1];
-            const gridY = (prevPath.y + path.y) / 2;
-            
+            // Draw line at top of each lane (except first)
             gridLines.append('line')
                 .attr('x1', -margin.left)
                 .attr('x2', width + 20)
-                .attr('y1', gridY)
-                .attr('y2', gridY)
+                .attr('y1', lane.top)
+                .attr('y2', lane.top)
                 .style('stroke', '#999')
                 .style('stroke-width', 1)
                 .style('opacity', 0.3);
@@ -311,46 +328,43 @@ function createHierarchicalVisualization(chartId, data) {
         .style('stroke', '#fff')
         .style('stroke-width', 2);
     
-    // Add labels with better positioning
+    // Add path labels at the upper left of each lane
+    lanes.forEach(lane => {
+        svgGroup.append('text')
+            .attr('x', -margin.left + 15)
+            .attr('y', lane.top + 20)
+            .style('text-anchor', 'start')
+            .style('font-size', '14px')
+            .style('font-weight', 'bold')
+            .style('fill', lane.color || '#666')
+            .attr('class', 'path-label')
+            .text(lane.name);
+    });
+    
+    // Add labels for job nodes
     nodes.append('text')
         .attr('x', d => {
-            if (d.data.type === 'path') {
-                // Position path labels at the left edge of their band
-                return -margin.left + 10;
-            }
+            if (d.data.type === 'path') return 0; // Path labels handled separately
             return d.children ? -12 : 12;
         })
         .attr('y', d => {
-            if (d.data.type === 'path') {
-                // Find the band boundaries for this path
-                const pathIndex = pathPositions.findIndex(p => p.name === d.data.name);
-                if (pathIndex >= 0) {
-                    const prevY = pathIndex > 0 ? pathPositions[pathIndex - 1].y : 0;
-                    const bandTop = (prevY + d.y) / 2;
-                    // Position at top of band with padding
-                    return bandTop - d.y + 20;
-                }
-                return -20;
-            }
+            if (d.data.type === 'path') return 0; // Path labels handled separately
             return 4;
         })
         .style('text-anchor', d => {
-            if (d.data.type === 'path') return 'start';
+            if (d.data.type === 'path') return 'middle';
             return d.children ? 'end' : 'start';
         })
-        .style('font-size', d => {
-            if (d.data.type === 'path') return '14px';
-            return '11px';
-        })
-        .style('font-weight', d => d.data.type === 'path' ? 'bold' : 'normal')
+        .style('font-size', '11px')
+        .style('font-weight', 'normal')
         .style('fill', d => {
-            if (d.data.type === 'path') return d.data.color || '#666';
+            if (d.data.type === 'path') return 'none'; // Hide path node labels
             return ''; // Let CSS handle the color
         })
         .attr('class', 'node-label')
         .text(d => {
             if (d.data.name === 'Career Journey') return '';
-            if (d.data.type === 'path') return d.data.name;
+            if (d.data.type === 'path') return ''; // Path labels handled separately
             // Show title with company name
             if (d.data.type === 'job' && d.data.title && d.data.name) {
                 return `${d.data.title} (${d.data.name})`;
