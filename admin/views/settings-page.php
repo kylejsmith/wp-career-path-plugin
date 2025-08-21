@@ -1,0 +1,179 @@
+<div class="wrap">
+    <h1><?php _e('Career Progression Settings', 'career-progression'); ?></h1>
+    
+    <form method="post" action="options.php">
+        <?php settings_fields('cpv_settings_group'); ?>
+        
+        <table class="form-table">
+            <tr>
+                <th scope="row">
+                    <label for="cpv_theme"><?php _e('Visualization Theme', 'career-progression'); ?></label>
+                </th>
+                <td>
+                    <select id="cpv_theme" name="cpv_settings[theme]">
+                        <option value="professional" <?php selected($settings['theme'] ?? 'professional', 'professional'); ?>>
+                            <?php _e('Professional', 'career-progression'); ?>
+                        </option>
+                        <option value="light" <?php selected($settings['theme'] ?? '', 'light'); ?>>
+                            <?php _e('Light', 'career-progression'); ?>
+                        </option>
+                        <option value="dark" <?php selected($settings['theme'] ?? '', 'dark'); ?>>
+                            <?php _e('Dark', 'career-progression'); ?>
+                        </option>
+                        <option value="system" <?php selected($settings['theme'] ?? '', 'system'); ?>>
+                            <?php _e('System', 'career-progression'); ?>
+                        </option>
+                    </select>
+                </td>
+            </tr>
+            
+            
+            <tr>
+                <th scope="row">
+                    <label for="cpv_date_format"><?php _e('Date Format', 'career-progression'); ?></label>
+                </th>
+                <td>
+                    <select id="cpv_date_format" name="cpv_settings[date_format]">
+                        <option value="F Y" <?php selected($settings['date_format'] ?? '', 'F Y'); ?>>
+                            <?php echo date('F Y'); ?> - US (January 2024)
+                        </option>
+                        <option value="M Y" <?php selected($settings['date_format'] ?? '', 'M Y'); ?>>
+                            <?php echo date('M Y'); ?> - US Short (Jan 2024)
+                        </option>
+                        <option value="m/Y" <?php selected($settings['date_format'] ?? '', 'm/Y'); ?>>
+                            <?php echo date('m/Y'); ?> - US Numeric (01/2024)
+                        </option>
+                        <option value="Y-m" <?php selected($settings['date_format'] ?? '', 'Y-m'); ?>>
+                            <?php echo date('Y-m'); ?> - ISO (2024-01)
+                        </option>
+                        <option value="m.Y" <?php selected($settings['date_format'] ?? '', 'm.Y'); ?>>
+                            <?php echo date('m.Y'); ?> - European (01.2024)
+                        </option>
+                        <option value="Y年m月" <?php selected($settings['date_format'] ?? '', 'Y年m月'); ?>>
+                            <?php echo date('Y年m月'); ?> - Japanese
+                        </option>
+                        <option value="Y" <?php selected($settings['date_format'] ?? '', 'Y'); ?>>
+                            <?php echo date('Y'); ?> - Year Only
+                        </option>
+                    </select>
+                </td>
+            </tr>
+            
+        </table>
+        
+        <?php submit_button(); ?>
+    </form>
+    
+    <hr style="margin: 40px 0;">
+    
+    <div class="cpv-preview-section">
+        <h2><?php _e('Live Preview', 'career-progression'); ?></h2>
+        
+        <div style="margin-bottom: 20px;">
+            <p style="color: #666; margin-bottom: 10px;">
+                <?php _e('Example shortcode usage:', 'career-progression'); ?><br>
+                <code>[career_progression]</code> - Default (1200px wide)<br>
+                <code>[career_progression width="100%" height="800"]</code> - Full width<br>
+                <code>[career_progression width="80%" theme="dark"]</code> - 80% width, dark theme
+            </p>
+            
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <input type="text" 
+                       id="cpv-preview-shortcode" 
+                       value="[career_progression]" 
+                       style="flex: 1; padding: 8px; font-family: monospace;"
+                       placeholder="[career_progression]">
+                <button type="button" 
+                        id="cpv-update-preview" 
+                        class="button button-primary">
+                    <?php _e('Update Preview', 'career-progression'); ?>
+                </button>
+            </div>
+        </div>
+        
+        <hr style="margin: 20px 0;">
+        
+        <div id="cpv-settings-preview" style="min-height: 400px; border: 1px solid #ddd; padding: 20px; background: #fafafa; overflow-x: auto;">
+            <!-- Preview will be rendered here -->
+        </div>
+    </div>
+    
+    <script type="text/javascript">
+    jQuery(document).ready(function($) {
+        let previewContainer = null;
+        
+        // Function to parse shortcode attributes
+        function parseShortcode(shortcode) {
+            const attrs = {
+                type: 'tree',
+                width: '1200',
+                height: '600',
+                theme: $('#cpv_theme').val() || 'professional'
+            };
+            
+            // Extract attributes from shortcode
+            const regex = /(\w+)=["']([^"']+)["']/g;
+            let match;
+            while ((match = regex.exec(shortcode)) !== null) {
+                attrs[match[1]] = match[2];
+            }
+            
+            return attrs;
+        }
+        
+        // Function to render preview
+        function renderPreview() {
+            const shortcode = $('#cpv-preview-shortcode').val();
+            const attrs = parseShortcode(shortcode);
+            
+            // Apply current settings from dropdown (override what was in shortcode)
+            attrs.theme = $('#cpv_theme').val() || 'professional';
+            
+            // Clear previous preview
+            const widthStyle = attrs.width.includes('%') ? attrs.width : attrs.width + 'px';
+            const heightStyle = attrs.height.includes('%') ? attrs.height : attrs.height + 'px';
+            
+            $('#cpv-settings-preview').html(`
+                <div class="cpv-container cpv-theme-${attrs.theme}" style="width: ${widthStyle}; margin: 0 auto;">
+                    <div id="cpv-preview-chart" class="cpv-chart" style="width: 100%; height: ${heightStyle};">
+                        <div class="cpv-loading">
+                            <span class="cpv-spinner"></span>
+                            <p><?php _e('Loading preview...', 'career-progression'); ?></p>
+                        </div>
+                    </div>
+                    <div class="cpv-controls">
+                        <button class="cpv-btn" data-action="zoom-in"><?php _e('Zoom In', 'career-progression'); ?></button>
+                        <button class="cpv-btn" data-action="zoom-out"><?php _e('Zoom Out', 'career-progression'); ?></button>
+                    </div>
+                </div>
+            `);
+            
+            // Initialize visualization
+            if (typeof initCareerVisualization === 'function') {
+                setTimeout(() => {
+                    initCareerVisualization('cpv-preview-chart', attrs);
+                }, 100);
+            }
+        }
+        
+        // Initial render
+        renderPreview();
+        
+        // Update preview on button click
+        $('#cpv-update-preview').on('click', renderPreview);
+        
+        // Update preview on enter key in shortcode field
+        $('#cpv-preview-shortcode').on('keypress', function(e) {
+            if (e.which === 13) {
+                e.preventDefault();
+                renderPreview();
+            }
+        });
+        
+        // Auto-update preview when settings change
+        $('#cpv_theme, #cpv_date_format').on('change', function() {
+            renderPreview();
+        });
+    });
+    </script>
+</div>

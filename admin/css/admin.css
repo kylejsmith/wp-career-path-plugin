@@ -1,0 +1,225 @@
+/**
+ * Career Progression Admin Styles
+ */
+
+.cpv-admin-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.cpv-admin-header h1 {
+    color: white;
+    margin: 0;
+    font-size: 28px;
+}
+
+.cpv-delete-entry {
+    color: #dc3545;
+    margin-left: 10px;
+}
+
+.cpv-delete-entry:hover {
+    color: #c82333;
+    background: #ffeef0;
+}
+
+.cpv-path-indicator {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
+.cpv-path-it { background-color: #4299e1; }
+.cpv-path-design { background-color: #ed8936; }
+.cpv-path-engineering { background-color: #48bb78; }
+.cpv-path-management { background-color: #9f7aea; }
+.cpv-path-business { background-color: #f56565; }
+
+.cpv-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.cpv-stat-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+}
+
+.cpv-stat-card h3 {
+    margin: 0 0 10px 0;
+    color: #4a5568;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.cpv-stat-card .cpv-stat-value {
+    font-size: 32px;
+    font-weight: bold;
+    color: #2d3748;
+}
+
+.cpv-form-section {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.cpv-form-section h2 {
+    margin-top: 0;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.cpv-skills-input {
+    position: relative;
+}
+
+.cpv-skills-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.cpv-skill-tag {
+    background: #edf2f7;
+    color: #4a5568;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.cpv-skill-tag .remove {
+    cursor: pointer;
+    color: #a0aec0;
+    font-weight: bold;
+}
+
+.cpv-skill-tag .remove:hover {
+    color: #e53e3e;
+}
+
+.cpv-timeline-preview {
+    background: #f7fafc;
+    border: 2px dashed #cbd5e0;
+    border-radius: 8px;
+    padding: 40px;
+    text-align: center;
+    margin: 20px 0;
+}
+
+.cpv-timeline-preview h3 {
+    color: #4a5568;
+    margin-bottom: 10px;
+}
+
+.cpv-import-export {
+    display: flex;
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.cpv-import-export .button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cpv-color-palette {
+    display: flex;
+    gap: 10px;
+    margin: 10px 0;
+}
+
+.cpv-color-option {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: all 0.2s;
+}
+
+.cpv-color-option:hover {
+    transform: scale(1.1);
+}
+
+.cpv-color-option.selected {
+    border-color: #4a5568;
+    box-shadow: 0 0 0 2px white, 0 0 0 4px #4a5568;
+}
+
+.wp-list-table .column-path {
+    width: 150px;
+}
+
+.wp-list-table .column-dates {
+    width: 200px;
+}
+
+.cpv-current-badge {
+    background: #48bb78;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.cpv-admin-notice {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 15px 20px;
+    border-radius: 8px;
+    margin: 20px 0;
+}
+
+.cpv-admin-notice a {
+    color: white;
+    text-decoration: underline;
+}
+
+.cpv-quick-actions {
+    display: flex;
+    gap: 10px;
+    margin: 20px 0;
+}
+
+.cpv-quick-actions .button {
+    flex: 1;
+    text-align: center;
+    padding: 12px;
+    height: auto;
+}
+
+@media (max-width: 782px) {
+    .cpv-stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .cpv-import-export {
+        flex-direction: column;
+    }
+    
+    .cpv-quick-actions {
+        flex-direction: column;
+    }
+}
