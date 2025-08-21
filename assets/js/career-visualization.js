@@ -144,86 +144,60 @@ function createHierarchicalVisualization(chartId, data) {
         .domain([domainMin, domainMax])
         .range([20, width - 20]);
     
-    // Find the y positions of each path after tree layout
-    const pathNodes = root.descendants().filter(d => d.data.type === 'path');
-    const pathPositions = pathNodes.map(d => ({
-        name: d.data.name,
-        y: d.x,  // Use x because tree is rotated
-        color: d.data.color
-    })).sort((a, b) => a.y - b.y);
-    
-    // Calculate lane boundaries with proper spacing
-    const laneHeight = height / pathPositions.length;
-    const lanes = pathPositions.map((path, i) => ({
-        name: path.name,  
-        color: path.color,
-        top: i * laneHeight,
-        bottom: (i + 1) * laneHeight,
-        centerY: i * laneHeight + laneHeight / 2
-    }));
-    
     // Group jobs by path for collision detection
     const jobsByPath = {};
     root.descendants().forEach(node => {
         if (node.data.type === 'job') {
-            const pathAncestor = node.ancestors().find(a => a.data.type === 'path');
-            if (pathAncestor) {
-                if (!jobsByPath[pathAncestor.data.name]) {
-                    jobsByPath[pathAncestor.data.name] = [];
+            const pathParent = node.parent;
+            if (pathParent && pathParent.data.type === 'path') {
+                if (!jobsByPath[pathParent.data.name]) {
+                    jobsByPath[pathParent.data.name] = [];
                 }
-                jobsByPath[pathAncestor.data.name].push(node);
+                jobsByPath[pathParent.data.name].push(node);
             }
         }
     });
     
-    // Position path nodes
+    // Adjust node positions based on time with collision detection
     root.descendants().forEach(node => {
-        if (node.data.type === 'path') {
-            const laneIndex = lanes.findIndex(l => l.name === node.data.name);
-            if (laneIndex >= 0) {
-                const lane = lanes[laneIndex];
-                node.y = lane.centerY;
-                node.x = -50;
-            }
+        // Store the original x position as the vertical position
+        const verticalPos = node.x;
+        const horizontalPos = node.y;
+        
+        if (node.data.type === 'path' && node.children && node.children.length > 0) {
+            const earliestYear = Math.min(...node.children.map(child => child.data.startYear || domainMax));
+            // Move path nodes to the left to make room for labels
+            node.x = timeScale(earliestYear) - 80;
+            node.y = verticalPos;
+        } else {
+            // Keep vertical position from tree layout
+            node.y = verticalPos;
         }
     });
     
-    // Position job nodes with collision detection
+    // Position jobs with collision detection
     Object.keys(jobsByPath).forEach(pathName => {
         const jobs = jobsByPath[pathName];
-        const laneIndex = lanes.findIndex(l => l.name === pathName);
         
-        if (laneIndex >= 0) {
-            const lane = lanes[laneIndex];
-            const laneHeight = lane.bottom - lane.top;
-            const padding = 15;
+        // Sort jobs by year
+        jobs.sort((a, b) => (a.data.startYear || 0) - (b.data.startYear || 0));
+        
+        // Apply minimum spacing between jobs
+        const minSpacing = 60; // Minimum horizontal pixels between job nodes
+        let lastX = -Infinity;
+        
+        jobs.forEach(job => {
+            const targetX = job.data.startYear ? timeScale(job.data.startYear) : 100;
             
-            // Sort jobs by start year
-            jobs.sort((a, b) => (a.data.startYear || 0) - (b.data.startYear || 0));
-            
-            // Position jobs with minimum spacing
-            const minSpacing = 80; // Minimum horizontal space between nodes
-            let lastX = -Infinity;
-            
-            jobs.forEach((job, i) => {
-                // Calculate base X position from time
-                let targetX = job.data.startYear ? timeScale(job.data.startYear) : (100 + i * minSpacing);
-                
-                // Avoid overlap - push right if too close to previous
-                if (targetX < lastX + minSpacing) {
-                    targetX = lastX + minSpacing;
-                }
-                
+            // If too close to previous job, push it right
+            if (targetX < lastX + minSpacing) {
+                job.x = lastX + minSpacing;
+            } else {
                 job.x = targetX;
-                lastX = targetX;
-                
-                // Distribute vertically within lane
-                const verticalSlots = Math.min(3, jobs.length); // Max 3 vertical positions
-                const slot = i % verticalSlots;
-                const slotHeight = (laneHeight - 2 * padding) / verticalSlots;
-                job.y = lane.top + padding + (slot * slotHeight) + (slotHeight / 2);
-            });
-        }
+            }
+            
+            lastX = job.x;
+        });
     });
     
     // Create tick values every 5 years for grid lines
@@ -232,18 +206,31 @@ function createHierarchicalVisualization(chartId, data) {
         tickValues.push(year);
     }
     
+    // Find the y positions of each path for grid lines and backgrounds
+    const pathNodes = root.descendants().filter(d => d.data.type === 'path');
+    const pathPositions = pathNodes.map(d => ({
+        name: d.data.name,
+        y: d.y,
+        color: d.data.color
+    })).sort((a, b) => a.y - b.y);
+    
     // Add colored background bands for each path
     const backgroundBands = svgGroup.append('g')
         .attr('class', 'path-backgrounds');
     
-    lanes.forEach(lane => {
+    pathPositions.forEach((path, i) => {
+        const nextY = i < pathPositions.length - 1 ? pathPositions[i + 1].y : height;
+        const prevY = i > 0 ? pathPositions[i - 1].y : 0;
+        const bandTop = (prevY + path.y) / 2;
+        const bandBottom = (path.y + nextY) / 2;
+        
         // Add colored background band
         backgroundBands.append('rect')
             .attr('x', -margin.left)
-            .attr('y', lane.top)
+            .attr('y', bandTop)
             .attr('width', width + margin.left + margin.right)
-            .attr('height', lane.bottom - lane.top)
-            .style('fill', lane.color)
+            .attr('height', bandBottom - bandTop)
+            .style('fill', path.color)
             .style('opacity', 0.05);
     });
     
@@ -251,14 +238,16 @@ function createHierarchicalVisualization(chartId, data) {
     const gridLines = svgGroup.append('g')
         .attr('class', 'grid-lines');
     
-    lanes.forEach((lane, i) => {
+    pathPositions.forEach((path, i) => {
         if (i > 0) {
-            // Draw line at top of each lane (except first)
+            const prevPath = pathPositions[i - 1];
+            const gridY = (prevPath.y + path.y) / 2;
+            
             gridLines.append('line')
                 .attr('x1', -margin.left)
                 .attr('x2', width + 20)
-                .attr('y1', lane.top)
-                .attr('y2', lane.top)
+                .attr('y1', gridY)
+                .attr('y2', gridY)
                 .style('stroke', '#999')
                 .style('stroke-width', 1)
                 .style('opacity', 0.3);
@@ -358,49 +347,55 @@ function createHierarchicalVisualization(chartId, data) {
         .style('stroke', '#fff')
         .style('stroke-width', 2);
     
-    // Add path labels at the upper left of each lane
-    lanes.forEach(lane => {
-        svgGroup.append('text')
-            .attr('x', -margin.left + 15)
-            .attr('y', lane.top + 20)
-            .style('text-anchor', 'start')
-            .style('font-size', '14px')
-            .style('font-weight', 'bold')
-            .style('fill', lane.color || '#666')
-            .attr('class', 'path-label')
-            .text(lane.name);
-    });
-    
-    // Add labels for job nodes with truncation
+    // Add labels with better positioning and truncation
     nodes.append('text')
         .attr('x', d => {
-            if (d.data.type === 'path') return 0; // Path labels handled separately
-            return 10; // Always position to the right of node
+            if (d.data.type === 'path') {
+                // Position path labels at the left edge of their band
+                return -margin.left + 10;
+            }
+            return 10; // Always position labels to the right of nodes
         })
         .attr('y', d => {
-            if (d.data.type === 'path') return 0; // Path labels handled separately
+            if (d.data.type === 'path') {
+                // Find the band boundaries for this path
+                const pathIndex = pathPositions.findIndex(p => p.name === d.data.name);
+                if (pathIndex >= 0) {
+                    const prevY = pathIndex > 0 ? pathPositions[pathIndex - 1].y : 0;
+                    const bandTop = (prevY + d.y) / 2;
+                    // Position at top of band with padding
+                    return bandTop - d.y + 20;
+                }
+                return -20;
+            }
             return 4;
         })
-        .style('text-anchor', 'start')
-        .style('font-size', '10px')
-        .style('font-weight', 'normal')
+        .style('text-anchor', d => {
+            if (d.data.type === 'path') return 'start';
+            return 'start'; // Always start anchor for consistency
+        })
+        .style('font-size', d => {
+            if (d.data.type === 'path') return '14px';
+            return '9px'; // Smaller font for job labels
+        })
+        .style('font-weight', d => d.data.type === 'path' ? 'bold' : 'normal')
         .style('fill', d => {
-            if (d.data.type === 'path') return 'none'; // Hide path node labels
+            if (d.data.type === 'path') return d.data.color || '#666';
             return ''; // Let CSS handle the color
         })
         .attr('class', 'node-label')
         .text(d => {
             if (d.data.name === 'Career Journey') return '';
-            if (d.data.type === 'path') return ''; // Path labels handled separately
-            // Show just the title, truncate if too long
+            if (d.data.type === 'path') return d.data.name;
+            // Truncate job titles to prevent overlap
             if (d.data.type === 'job' && d.data.title) {
-                const maxLength = 25;
+                const maxLength = 20;
                 const title = d.data.title;
                 return title.length > maxLength ? title.substring(0, maxLength) + '...' : title;
             }
-            return '';
+            return d.data.title || d.data.name;
         })
-        .append('title') // Add tooltip with full text
+        .append('title') // Add tooltip for full text
         .text(d => {
             if (d.data.type === 'job' && d.data.title && d.data.name) {
                 return `${d.data.title} at ${d.data.name}`;
