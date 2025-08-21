@@ -162,56 +162,67 @@ function createHierarchicalVisualization(chartId, data) {
         centerY: i * laneHeight + laneHeight / 2
     }));
     
-    // Adjust node positions - keep tree layout but move paths to lanes
+    // Group jobs by path for collision detection
+    const jobsByPath = {};
     root.descendants().forEach(node => {
-        // Store original positions
-        const origX = node.x;
-        const origY = node.y;
-        
+        if (node.data.type === 'job') {
+            const pathAncestor = node.ancestors().find(a => a.data.type === 'path');
+            if (pathAncestor) {
+                if (!jobsByPath[pathAncestor.data.name]) {
+                    jobsByPath[pathAncestor.data.name] = [];
+                }
+                jobsByPath[pathAncestor.data.name].push(node);
+            }
+        }
+    });
+    
+    // Position path nodes
+    root.descendants().forEach(node => {
         if (node.data.type === 'path') {
-            // Find the lane for this path
             const laneIndex = lanes.findIndex(l => l.name === node.data.name);
             if (laneIndex >= 0) {
                 const lane = lanes[laneIndex];
-                // Position path nodes off to the left and centered in lane
                 node.y = lane.centerY;
                 node.x = -50;
             }
-        } else if (node.data.type === 'job') {
-            // Keep horizontal position from tree layout
-            // Adjust vertical position to fit in lane
-            const pathAncestor = node.ancestors().find(a => a.data.type === 'path');
-            if (pathAncestor) {
-                const laneIndex = lanes.findIndex(l => l.name === pathAncestor.data.name);
-                if (laneIndex >= 0) {
-                    const lane = lanes[laneIndex];
-                    // Scale the tree's Y position to fit within the lane
-                    const treeRange = pathAncestor.descendants()
-                        .filter(d => d.data.type === 'job')
-                        .reduce((acc, d) => {
-                            acc.min = Math.min(acc.min, d.x);
-                            acc.max = Math.max(acc.max, d.x);
-                            return acc;
-                        }, {min: Infinity, max: -Infinity});
-                    
-                    if (treeRange.min !== Infinity) {
-                        // Map tree position to lane position
-                        const relativePos = (origX - treeRange.min) / (treeRange.max - treeRange.min || 1);
-                        const padding = 20;
-                        node.y = lane.top + padding + (relativePos * (lane.bottom - lane.top - 2 * padding));
-                    } else {
-                        node.y = lane.centerY;
-                    }
-                    
-                    // Use time scale for horizontal position if we have a year
-                    if (node.data.startYear) {
-                        node.x = timeScale(node.data.startYear);
-                    } else {
-                        // Keep tree layout horizontal position
-                        node.x = origY;
-                    }
+        }
+    });
+    
+    // Position job nodes with collision detection
+    Object.keys(jobsByPath).forEach(pathName => {
+        const jobs = jobsByPath[pathName];
+        const laneIndex = lanes.findIndex(l => l.name === pathName);
+        
+        if (laneIndex >= 0) {
+            const lane = lanes[laneIndex];
+            const laneHeight = lane.bottom - lane.top;
+            const padding = 15;
+            
+            // Sort jobs by start year
+            jobs.sort((a, b) => (a.data.startYear || 0) - (b.data.startYear || 0));
+            
+            // Position jobs with minimum spacing
+            const minSpacing = 80; // Minimum horizontal space between nodes
+            let lastX = -Infinity;
+            
+            jobs.forEach((job, i) => {
+                // Calculate base X position from time
+                let targetX = job.data.startYear ? timeScale(job.data.startYear) : (100 + i * minSpacing);
+                
+                // Avoid overlap - push right if too close to previous
+                if (targetX < lastX + minSpacing) {
+                    targetX = lastX + minSpacing;
                 }
-            }
+                
+                job.x = targetX;
+                lastX = targetX;
+                
+                // Distribute vertically within lane
+                const verticalSlots = Math.min(3, jobs.length); // Max 3 vertical positions
+                const slot = i % verticalSlots;
+                const slotHeight = (laneHeight - 2 * padding) / verticalSlots;
+                job.y = lane.top + padding + (slot * slotHeight) + (slotHeight / 2);
+            });
         }
     });
     
@@ -360,21 +371,18 @@ function createHierarchicalVisualization(chartId, data) {
             .text(lane.name);
     });
     
-    // Add labels for job nodes
+    // Add labels for job nodes with truncation
     nodes.append('text')
         .attr('x', d => {
             if (d.data.type === 'path') return 0; // Path labels handled separately
-            return d.children ? -12 : 12;
+            return 10; // Always position to the right of node
         })
         .attr('y', d => {
             if (d.data.type === 'path') return 0; // Path labels handled separately
             return 4;
         })
-        .style('text-anchor', d => {
-            if (d.data.type === 'path') return 'middle';
-            return d.children ? 'end' : 'start';
-        })
-        .style('font-size', '11px')
+        .style('text-anchor', 'start')
+        .style('font-size', '10px')
         .style('font-weight', 'normal')
         .style('fill', d => {
             if (d.data.type === 'path') return 'none'; // Hide path node labels
@@ -384,11 +392,20 @@ function createHierarchicalVisualization(chartId, data) {
         .text(d => {
             if (d.data.name === 'Career Journey') return '';
             if (d.data.type === 'path') return ''; // Path labels handled separately
-            // Show title with company name
-            if (d.data.type === 'job' && d.data.title && d.data.name) {
-                return `${d.data.title} (${d.data.name})`;
+            // Show just the title, truncate if too long
+            if (d.data.type === 'job' && d.data.title) {
+                const maxLength = 25;
+                const title = d.data.title;
+                return title.length > maxLength ? title.substring(0, maxLength) + '...' : title;
             }
-            return d.data.title || d.data.name;
+            return '';
+        })
+        .append('title') // Add tooltip with full text
+        .text(d => {
+            if (d.data.type === 'job' && d.data.title && d.data.name) {
+                return `${d.data.title} at ${d.data.name}`;
+            }
+            return '';
         });
     
     // Add year axis (now on bottom since timeline is horizontal)
