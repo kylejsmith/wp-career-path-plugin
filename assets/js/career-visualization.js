@@ -144,14 +144,6 @@ function createHierarchicalVisualization(chartId, data) {
         .domain([domainMin, domainMax])
         .range([20, width - 20]);
     
-    // First pass: adjust node positions based on time
-    root.descendants().forEach(node => {
-        if (node.data.startYear) {
-            // Position job nodes based on time
-            node.x = timeScale(node.data.startYear);
-        }
-    });
-    
     // Find the y positions of each path after tree layout
     const pathNodes = root.descendants().filter(d => d.data.type === 'path');
     const pathPositions = pathNodes.map(d => ({
@@ -170,27 +162,54 @@ function createHierarchicalVisualization(chartId, data) {
         centerY: i * laneHeight + laneHeight / 2
     }));
     
-    // Second pass: adjust vertical positions based on lanes
+    // Adjust node positions - keep tree layout but move paths to lanes
     root.descendants().forEach(node => {
+        // Store original positions
+        const origX = node.x;
+        const origY = node.y;
+        
         if (node.data.type === 'path') {
             // Find the lane for this path
             const laneIndex = lanes.findIndex(l => l.name === node.data.name);
             if (laneIndex >= 0) {
                 const lane = lanes[laneIndex];
-                // Center path nodes vertically in their lane
+                // Position path nodes off to the left and centered in lane
                 node.y = lane.centerY;
-                // Position path nodes off to the left
                 node.x = -50;
             }
         } else if (node.data.type === 'job') {
-            // Find parent path to determine lane
+            // Keep horizontal position from tree layout
+            // Adjust vertical position to fit in lane
             const pathAncestor = node.ancestors().find(a => a.data.type === 'path');
             if (pathAncestor) {
                 const laneIndex = lanes.findIndex(l => l.name === pathAncestor.data.name);
                 if (laneIndex >= 0) {
                     const lane = lanes[laneIndex];
-                    // Center job nodes vertically in their lane
-                    node.y = lane.centerY;
+                    // Scale the tree's Y position to fit within the lane
+                    const treeRange = pathAncestor.descendants()
+                        .filter(d => d.data.type === 'job')
+                        .reduce((acc, d) => {
+                            acc.min = Math.min(acc.min, d.x);
+                            acc.max = Math.max(acc.max, d.x);
+                            return acc;
+                        }, {min: Infinity, max: -Infinity});
+                    
+                    if (treeRange.min !== Infinity) {
+                        // Map tree position to lane position
+                        const relativePos = (origX - treeRange.min) / (treeRange.max - treeRange.min || 1);
+                        const padding = 20;
+                        node.y = lane.top + padding + (relativePos * (lane.bottom - lane.top - 2 * padding));
+                    } else {
+                        node.y = lane.centerY;
+                    }
+                    
+                    // Use time scale for horizontal position if we have a year
+                    if (node.data.startYear) {
+                        node.x = timeScale(node.data.startYear);
+                    } else {
+                        // Keep tree layout horizontal position
+                        node.x = origY;
+                    }
                 }
             }
         }
