@@ -381,61 +381,51 @@ function createHierarchicalVisualization(chartId, data, options) {
         .style('stroke', '#fff')
         .style('stroke-width', 2);
     
-    // Add labels - hide job labels by default to prevent overlap
+    // Add path labels as separate elements positioned absolutely
+    const pathLabels = svgGroup.append('g')
+        .attr('class', 'path-labels');
+    
+    pathPositions.forEach((path, i) => {
+        const laneVerticalPadding = 40;
+        const prevY = i > 0 ? pathPositions[i - 1].y : -laneVerticalPadding;
+        let bandTop = (prevY + path.y) / 2;
+        
+        if (i === 0) {
+            bandTop = -laneVerticalPadding;
+        }
+        
+        pathLabels.append('text')
+            .attr('x', 10) // Fixed position from left edge
+            .attr('y', bandTop + 25) // Position near top of lane
+            .style('text-anchor', 'start')
+            .style('font-size', '14px')
+            .style('font-weight', 'bold')
+            .style('fill', path.color)
+            .text(path.name);
+    });
+    
+    // Add labels for job nodes only (not path nodes since we handled them separately)
     const labels = nodes.append('text')
         .attr('x', d => {
-            if (d.data.type === 'path') {
-                // Position path labels properly left-aligned with padding from left edge
-                const leftEdgeOfChart = -20; // Left edge after timeline
-                return leftEdgeOfChart - d.x + 15; // Position relative to node position
-            }
             return 10; // Always position labels to the right of nodes
         })
         .attr('y', d => {
-            if (d.data.type === 'path') {
-                // Position path labels at top of their lane with proper padding
-                const pathIndex = pathPositions.findIndex(p => p.name === d.data.name);
-                if (pathIndex >= 0) {
-                    const laneVerticalPadding = 40;
-                    const prevY = pathIndex > 0 ? pathPositions[pathIndex - 1].y : -laneVerticalPadding;
-                    let bandTop = (prevY + d.y) / 2;
-                    
-                    // Adjust for first lane
-                    if (pathIndex === 0) {
-                        bandTop = -laneVerticalPadding;
-                    }
-                    
-                    // Position label with padding from top of band
-                    return bandTop - d.y + 25;
-                }
-                return -20;
-            }
             return 4;
         })
-        .style('text-anchor', d => {
-            if (d.data.type === 'path') return 'start';
-            return 'start'; // Always start anchor for consistency
-        })
-        .style('font-size', d => {
-            if (d.data.type === 'path') return '14px';
-            return '9px'; // Smaller font for job labels
-        })
-        .style('font-weight', d => d.data.type === 'path' ? 'bold' : 'normal')
-        .style('fill', d => {
-            if (d.data.type === 'path') return d.data.color || '#666';
-            return ''; // Let CSS handle the color
-        })
+        .style('text-anchor', 'start')
+        .style('font-size', '9px') // Smaller font for job labels
+        .style('font-weight', 'normal')
         .attr('class', 'node-label')
         .style('display', d => {
-            // Only show path labels by default, hide job labels
+            // Hide all node labels by default (path labels are handled separately)
             if (d.data.type === 'path' || d.data.name === 'Career Journey') {
-                return 'block';
+                return 'none'; // Hide path node labels since we have separate path labels
             }
-            return 'none';
+            return 'none'; // Hide job labels too to prevent overlap
         })
         .text(d => {
             if (d.data.name === 'Career Journey') return '';
-            if (d.data.type === 'path') return d.data.name;
+            if (d.data.type === 'path') return ''; // No text for path nodes
             // Keep full text for jobs (will be hidden anyway)
             if (d.data.type === 'job' && d.data.title) {
                 return d.data.title;
