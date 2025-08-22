@@ -123,24 +123,34 @@ class CPV_Admin {
     }
     
     private function get_path_color($path_type) {
-        // Predefined colors for common paths
+        // Predefined colors for common paths - highly distinct color palette
         $path_colors = array(
-            'IT Path' => '#4299e1',
-            'Design Path' => '#ed8936',
-            'Engineering Path' => '#48bb78',
-            'Management Path' => '#9f7aea',
-            'Business Path' => '#f6ad55',
-            'Marketing Path' => '#fc8181',
-            'Sales Path' => '#4fd1c5',
-            'Product Path' => '#63b3ed'
+            'IT Path' => '#2563eb',        // Blue
+            'Design Path' => '#dc2626',    // Red  
+            'Engineering Path' => '#059669', // Green
+            'Management Path' => '#7c3aed', // Purple
+            'Business Path' => '#ea580c',   // Orange
+            'Marketing Path' => '#db2777',  // Pink
+            'Sales Path' => '#0891b2',      // Cyan
+            'Product Path' => '#65a30d'     // Lime
         );
         
         if (isset($path_colors[$path_type])) {
             return $path_colors[$path_type];
         }
         
-        // Generate a color for new paths
-        $colors = array('#e53e3e', '#f56500', '#ffd700', '#228b22', '#008b8b', '#4169e1', '#8a2be2', '#ff1493', '#ff4500');
+        // Generate a color for new paths - highly distinct fallback colors
+        $colors = array(
+            '#991b1b', // Dark red
+            '#92400e', // Dark orange  
+            '#365314', // Dark green
+            '#1e40af', // Dark blue
+            '#581c87', // Dark purple
+            '#be185d', // Dark pink
+            '#155e75', // Dark cyan
+            '#713f12', // Dark yellow
+            '#374151'  // Dark gray
+        );
         return $colors[crc32($path_type) % count($colors)];
     }
     
