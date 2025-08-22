@@ -58,27 +58,41 @@
                 </th>
                 <td>
                     <select id="cpv_date_format" name="cpv_settings[date_format]">
-                        <option value="F Y" <?php selected($settings['date_format'] ?? '', 'F Y'); ?>>
-                            <?php echo date('F Y'); ?> - US (January 2024)
-                        </option>
-                        <option value="M Y" <?php selected($settings['date_format'] ?? '', 'M Y'); ?>>
-                            <?php echo date('M Y'); ?> - US Short (Jan 2024)
-                        </option>
-                        <option value="m/Y" <?php selected($settings['date_format'] ?? '', 'm/Y'); ?>>
-                            <?php echo date('m/Y'); ?> - US Numeric (01/2024)
-                        </option>
-                        <option value="Y-m" <?php selected($settings['date_format'] ?? '', 'Y-m'); ?>>
-                            <?php echo date('Y-m'); ?> - ISO (2024-01)
-                        </option>
-                        <option value="m.Y" <?php selected($settings['date_format'] ?? '', 'm.Y'); ?>>
-                            <?php echo date('m.Y'); ?> - European (01.2024)
-                        </option>
-                        <option value="Y年m月" <?php selected($settings['date_format'] ?? '', 'Y年m月'); ?>>
-                            <?php echo date('Y年m月'); ?> - Japanese
-                        </option>
-                        <option value="Y" <?php selected($settings['date_format'] ?? '', 'Y'); ?>>
-                            <?php echo date('Y'); ?> - Year Only
-                        </option>
+                        <optgroup label="Americas">
+                            <option value="F Y" <?php selected($settings['date_format'] ?? '', 'F Y'); ?>>
+                                <?php echo date('F Y'); ?> - Full Month (January 2024)
+                            </option>
+                            <option value="M Y" <?php selected($settings['date_format'] ?? '', 'M Y'); ?>>
+                                <?php echo date('M Y'); ?> - Short Month (Jan 2024)
+                            </option>
+                            <option value="m/Y" <?php selected($settings['date_format'] ?? '', 'm/Y'); ?>>
+                                <?php echo date('m/Y'); ?> - MM/YYYY (01/2024)
+                            </option>
+                        </optgroup>
+                        <optgroup label="Europe/Africa">
+                            <option value="m.Y" <?php selected($settings['date_format'] ?? '', 'm.Y'); ?>>
+                                <?php echo date('m.Y'); ?> - MM.YYYY (01.2024)
+                            </option>
+                            <option value="d/m/Y" <?php selected($settings['date_format'] ?? '', 'd/m/Y'); ?>>
+                                <?php echo date('d/m/Y'); ?> - DD/MM/YYYY
+                            </option>
+                        </optgroup>
+                        <optgroup label="Asia-Pacific">
+                            <option value="Y年m月" <?php selected($settings['date_format'] ?? '', 'Y年m月'); ?>>
+                                <?php echo date('Y年m月'); ?> - CJK Format
+                            </option>
+                            <option value="Y/m" <?php selected($settings['date_format'] ?? '', 'Y/m'); ?>>
+                                <?php echo date('Y/m'); ?> - YYYY/MM (2024/01)
+                            </option>
+                        </optgroup>
+                        <optgroup label="International">
+                            <option value="Y-m" <?php selected($settings['date_format'] ?? '', 'Y-m'); ?>>
+                                <?php echo date('Y-m'); ?> - ISO 8601 (2024-01)
+                            </option>
+                            <option value="Y" <?php selected($settings['date_format'] ?? '', 'Y'); ?>>
+                                <?php echo date('Y'); ?> - Year Only
+                            </option>
+                        </optgroup>
                     </select>
                 </td>
             </tr>

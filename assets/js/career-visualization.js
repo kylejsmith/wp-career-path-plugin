@@ -214,6 +214,13 @@ function createHierarchicalVisualization(chartId, data) {
         color: d.data.color
     })).sort((a, b) => a.y - b.y);
     
+    // Check if dark theme
+    const containerEl = container.closest('.cpv-container');
+    const isDarkTheme = containerEl && (
+        containerEl.classList.contains('cpv-theme-dark') || 
+        (containerEl.classList.contains('cpv-theme-system') && window.matchMedia('(prefers-color-scheme: dark)').matches)
+    );
+    
     // Add colored background bands for each path
     const backgroundBands = svgGroup.append('g')
         .attr('class', 'path-backgrounds');
@@ -231,7 +238,8 @@ function createHierarchicalVisualization(chartId, data) {
             .attr('width', width + margin.left + margin.right)
             .attr('height', bandBottom - bandTop)
             .style('fill', path.color)
-            .style('opacity', 0.05);
+            .style('opacity', isDarkTheme ? 0.35 : 0.25) // Brighter for dark theme
+            .style('filter', isDarkTheme ? 'brightness(1.3)' : 'none'); // Make colors brighter in dark theme
     });
     
     // Add horizontal grid lines to separate paths
@@ -347,8 +355,8 @@ function createHierarchicalVisualization(chartId, data) {
         .style('stroke', '#fff')
         .style('stroke-width', 2);
     
-    // Add labels with better positioning and truncation
-    nodes.append('text')
+    // Add labels - hide job labels by default to prevent overlap
+    const labels = nodes.append('text')
         .attr('x', d => {
             if (d.data.type === 'path') {
                 // Position path labels at the left edge of their band
@@ -384,18 +392,25 @@ function createHierarchicalVisualization(chartId, data) {
             return ''; // Let CSS handle the color
         })
         .attr('class', 'node-label')
+        .style('display', d => {
+            // Only show path labels by default, hide job labels
+            if (d.data.type === 'path' || d.data.name === 'Career Journey') {
+                return 'block';
+            }
+            return 'none';
+        })
         .text(d => {
             if (d.data.name === 'Career Journey') return '';
             if (d.data.type === 'path') return d.data.name;
-            // Truncate job titles to prevent overlap
+            // Keep full text for jobs (will be hidden anyway)
             if (d.data.type === 'job' && d.data.title) {
-                const maxLength = 20;
-                const title = d.data.title;
-                return title.length > maxLength ? title.substring(0, maxLength) + '...' : title;
+                return d.data.title;
             }
             return d.data.title || d.data.name;
-        })
-        .append('title') // Add tooltip for full text
+        });
+    
+    // Add tooltips separately (can't append title to text)
+    nodes.append('title')
         .text(d => {
             if (d.data.type === 'job' && d.data.title && d.data.name) {
                 return `${d.data.title} at ${d.data.name}`;
@@ -417,19 +432,21 @@ function createHierarchicalVisualization(chartId, data) {
     // Auto-fit the entire tree in view on initial load
     setTimeout(() => {
         // Calculate the bounding box of all nodes
-        const allNodes = root.descendants();
+        const allNodes = root.descendants().filter(d => d.data.type !== 'path' && d.data.name !== 'Career Journey');
+        if (allNodes.length === 0) return;
+        
         const xExtent = d3.extent(allNodes, d => d.x);
         const yExtent = d3.extent(allNodes, d => d.y);
         
-        // Calculate scale to fit
-        const xRange = xExtent[1] - xExtent[0] + 100; // Add padding
-        const yRange = yExtent[1] - yExtent[0] + 100;
+        // Add 20px padding as requested
+        const padding = 20;
+        const xRange = xExtent[1] - xExtent[0] + (padding * 2);
+        const yRange = yExtent[1] - yExtent[0] + (padding * 2);
         
-        const scale = Math.min(
-            (width - 40) / xRange,
-            (height - 40) / yRange,
-            1 // Don't zoom in more than 100%
-        );
+        // Calculate scale to fit container (not just square)
+        const scaleX = width / xRange;
+        const scaleY = height / yRange;
+        const scale = Math.min(scaleX, scaleY, 2); // Allow up to 2x zoom
         
         // Calculate center
         const centerX = (xExtent[0] + xExtent[1]) / 2;
@@ -437,9 +454,9 @@ function createHierarchicalVisualization(chartId, data) {
         
         // Apply transform to fit all content
         const transform = d3.zoomIdentity
-            .translate(size / 2, size / 2)
+            .translate(width / 2 + margin.left, height / 2 + margin.top)
             .scale(scale)
-            .translate(-centerX - margin.left, -centerY - margin.top);
+            .translate(-centerX, -centerY);
         
         svg.call(zoomBehavior.transform, transform);
     }, 100);

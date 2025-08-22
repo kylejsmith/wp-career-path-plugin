@@ -53,8 +53,8 @@
                     $table_name = $wpdb->prefix . 'career_progression';
                     $existing_paths = $wpdb->get_col("SELECT DISTINCT path_type FROM $table_name WHERE path_type IS NOT NULL ORDER BY path_type");
                     
-                    // Common career paths for the modal - 125+ options
-                    $common_paths = array(
+                    // Common career paths for the modal - 125+ options (alphabetized)
+                    $common_paths_unsorted = array(
                         'Technology & IT' => array(
                             'Software Development', 'Web Development', 'Mobile Development', 'DevOps', 'Data Science', 
                             'Data Analytics', 'Cybersecurity', 'IT Support', 'Cloud Architecture', 'Machine Learning', 
@@ -163,6 +163,16 @@
                             'Investigation Services', 'Locksmith Services', 'Appliance Repair', 'Pest Control'
                         )
                     );
+                    
+                    // Sort categories alphabetically
+                    ksort($common_paths_unsorted);
+                    
+                    // Sort items within each category
+                    $common_paths = array();
+                    foreach ($common_paths_unsorted as $category => $items) {
+                        sort($items);
+                        $common_paths[$category] = $items;
+                    }
                     ?>
                     <select id="path_type_select" class="regular-text">
                         <option value=""><?php _e('-- Select a path --', 'career-progression'); ?></option>
