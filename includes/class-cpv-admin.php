@@ -341,28 +341,42 @@ class CPV_Admin {
             return;
         }
         
+        if (empty($data['children'])) {
+            wp_send_json_error('No career paths found in JSON data');
+            return;
+        }
+        
         global $wpdb;
         $table_name = $wpdb->prefix . 'career_progression';
         
         // Delete all existing entries
         $wpdb->query("TRUNCATE TABLE $table_name");
         
+        $total_jobs_imported = 0;
+        
         // Process each path
         foreach ($data['children'] as $path) {
             if (!isset($path['children'])) continue;
             
             $path_name = $path['name'];
-            $path_color = $path['color'] ?? '#4299e1';
+            $path_color = isset($path['color']) ? $path['color'] : '#4299e1';
             
             // Process jobs in this path
-            $this->process_path_children($path['children'], $path_name, $path_color, $table_name);
+            $jobs_in_path = $this->process_path_children($path['children'], $path_name, $path_color, $table_name);
+            $total_jobs_imported += $jobs_in_path;
         }
         
-        wp_send_json_success(array('message' => 'Data imported successfully'));
+        if ($total_jobs_imported === 0) {
+            wp_send_json_error('No jobs were imported. Check your JSON structure.');
+            return;
+        }
+        
+        wp_send_json_success(array('message' => "Data imported successfully! Imported {$total_jobs_imported} jobs."));
     }
     
     private function process_path_children($children, $path_name, $path_color, $table_name) {
         global $wpdb;
+        $jobs_imported = 0;
         
         foreach ($children as $item) {
             if ($item['type'] === 'job' || $item['type'] === 'role') {
@@ -370,22 +384,26 @@ class CPV_Admin {
                 $start_date = isset($item['startYear']) ? $item['startYear'] . '-01-01' : date('Y-m-d');
                 $end_date = isset($item['endYear']) && $item['endYear'] != date('Y') + 1 ? $item['endYear'] . '-12-31' : null;
                 
-                $wpdb->insert(
+                $result = $wpdb->insert(
                     $table_name,
                     array(
-                        'position' => $item['title'] ?? $item['name'],
-                        'company' => $item['name'] ?? '',
+                        'position' => isset($item['title']) ? $item['title'] : (isset($item['name']) ? $item['name'] : ''),
+                        'company' => isset($item['name']) ? $item['name'] : '',
                         'start_date' => $start_date,
                         'end_date' => $end_date,
-                        'description' => $item['description'] ?? '',
+                        'description' => isset($item['description']) ? $item['description'] : '',
                         'skills' => isset($item['skills']) ? json_encode($item['skills']) : json_encode(array()),
                         'achievements' => isset($item['achievements']) ? json_encode($item['achievements']) : json_encode(array()),
-                        'location' => $item['location'] ?? '',
-                        'company_image' => $item['company_image'] ?? '',
+                        'location' => isset($item['location']) ? $item['location'] : '',
+                        'company_image' => isset($item['company_image']) ? $item['company_image'] : '',
                         'path_type' => $path_name,
                         'path_color' => $path_color
                     )
                 );
+                
+                if ($result !== false) {
+                    $jobs_imported++;
+                }
             } elseif (isset($item['children'])) {
                 // It's a nested structure (like Microsoft with multiple roles)
                 // Use the parent company name for all child roles
@@ -393,25 +411,31 @@ class CPV_Admin {
                     $start_date = isset($role['startYear']) ? $role['startYear'] . '-01-01' : date('Y-m-d');
                     $end_date = isset($role['endYear']) && $role['endYear'] != date('Y') + 1 ? $role['endYear'] . '-12-31' : null;
                     
-                    $wpdb->insert(
+                    $result = $wpdb->insert(
                         $table_name,
                         array(
-                            'position' => $role['title'] ?? $role['name'],
+                            'position' => isset($role['title']) ? $role['title'] : (isset($role['name']) ? $role['name'] : ''),
                             'company' => $item['name'],
                             'start_date' => $start_date,
                             'end_date' => $end_date,
-                            'description' => $role['description'] ?? '',
+                            'description' => isset($role['description']) ? $role['description'] : '',
                             'skills' => isset($role['skills']) ? json_encode($role['skills']) : json_encode(array()),
                             'achievements' => isset($role['achievements']) ? json_encode($role['achievements']) : json_encode(array()),
-                            'location' => $role['location'] ?? '',
-                            'company_image' => $role['company_image'] ?? '',
+                            'location' => isset($role['location']) ? $role['location'] : '',
+                            'company_image' => isset($role['company_image']) ? $role['company_image'] : '',
                             'path_type' => $path_name,
                             'path_color' => $path_color
                         )
                     );
+                    
+                    if ($result !== false) {
+                        $jobs_imported++;
+                    }
                 }
             }
         }
+        
+        return $jobs_imported;
     }
     
     public function ajax_convert_linkedin_data() {
