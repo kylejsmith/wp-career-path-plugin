@@ -226,10 +226,23 @@ function createHierarchicalVisualization(chartId, data, options) {
         .attr('class', 'path-backgrounds');
     
     pathPositions.forEach((path, i) => {
+        // Add extra padding at top and bottom of lanes for breathing room
+        const laneVerticalPadding = 40; // Pixels of extra space above and below lane content
+        
         const nextY = i < pathPositions.length - 1 ? pathPositions[i + 1].y : height;
-        const prevY = i > 0 ? pathPositions[i - 1].y : 0;
-        const bandTop = (prevY + path.y) / 2;
-        const bandBottom = (path.y + nextY) / 2;
+        const prevY = i > 0 ? pathPositions[i - 1].y : -laneVerticalPadding; // Extend first lane upward
+        
+        // Calculate band boundaries with padding
+        let bandTop = (prevY + path.y) / 2;
+        let bandBottom = (path.y + nextY) / 2;
+        
+        // Add padding to make lanes taller
+        if (i === 0) {
+            bandTop = -laneVerticalPadding; // Start first lane above the content
+        }
+        if (i === pathPositions.length - 1) {
+            bandBottom = height + laneVerticalPadding; // Extend last lane below content
+        }
         
         // Add colored background band with extra width for zoom/pan
         const extraWidth = width * 3; // Make it 3x wider to handle zoom/pan
@@ -372,20 +385,28 @@ function createHierarchicalVisualization(chartId, data, options) {
     const labels = nodes.append('text')
         .attr('x', d => {
             if (d.data.type === 'path') {
-                // Position path labels at the left edge of their band
-                return -margin.left + 10;
+                // Position path labels properly left-aligned with padding from left edge
+                const leftEdgeOfChart = -20; // Left edge after timeline
+                return leftEdgeOfChart - d.x + 15; // Position relative to node position
             }
             return 10; // Always position labels to the right of nodes
         })
         .attr('y', d => {
             if (d.data.type === 'path') {
-                // Find the band boundaries for this path
+                // Position path labels at top of their lane with proper padding
                 const pathIndex = pathPositions.findIndex(p => p.name === d.data.name);
                 if (pathIndex >= 0) {
-                    const prevY = pathIndex > 0 ? pathPositions[pathIndex - 1].y : 0;
-                    const bandTop = (prevY + d.y) / 2;
-                    // Position at top of band with padding
-                    return bandTop - d.y + 20;
+                    const laneVerticalPadding = 40;
+                    const prevY = pathIndex > 0 ? pathPositions[pathIndex - 1].y : -laneVerticalPadding;
+                    let bandTop = (prevY + d.y) / 2;
+                    
+                    // Adjust for first lane
+                    if (pathIndex === 0) {
+                        bandTop = -laneVerticalPadding;
+                    }
+                    
+                    // Position label with padding from top of band
+                    return bandTop - d.y + 25;
                 }
                 return -20;
             }
@@ -440,7 +461,8 @@ function createHierarchicalVisualization(chartId, data, options) {
         .attr('class', 'year-axis')
         .attr('transform', `translate(0, ${height})`)
         .call(yearAxis)
-        .style('font-size', '10px');
+        .style('font-size', '14px')  // Increased from 10px for better readability
+        .style('font-weight', '500');
     
     // Auto-fit the entire tree in view on initial load
     setTimeout(() => {
