@@ -347,7 +347,7 @@ class CPV_Admin {
         $data = json_decode($json_data, true);
         
         if (!$data || !isset($data['children'])) {
-            wp_send_json_error('Invalid JSON structure');
+            wp_send_json_error('Invalid JSON structure - missing children array');
             return;
         }
         
@@ -363,21 +363,32 @@ class CPV_Admin {
         $wpdb->query("TRUNCATE TABLE $table_name");
         
         $total_jobs_imported = 0;
+        $debug_info = array();
         
         // Process each path
-        foreach ($data['children'] as $path) {
-            if (!isset($path['children'])) continue;
+        foreach ($data['children'] as $path_index => $path) {
+            $debug_info["path_$path_index"] = array(
+                'name' => $path['name'] ?? 'Unknown',
+                'has_children' => isset($path['children']),
+                'children_count' => isset($path['children']) ? count($path['children']) : 0
+            );
+            
+            if (!isset($path['children'])) {
+                $debug_info["path_$path_index"]['skip_reason'] = 'No children array';
+                continue;
+            }
             
             $path_name = $path['name'];
             $path_color = isset($path['color']) ? $path['color'] : '#4299e1';
             
             // Process jobs in this path
             $jobs_in_path = $this->process_path_children($path['children'], $path_name, $path_color, $table_name);
+            $debug_info["path_$path_index"]['jobs_imported'] = $jobs_in_path;
             $total_jobs_imported += $jobs_in_path;
         }
         
         if ($total_jobs_imported === 0) {
-            wp_send_json_error('No jobs were imported. Check your JSON structure.');
+            wp_send_json_error('No jobs were imported. Debug info: ' . json_encode($debug_info));
             return;
         }
         
@@ -388,12 +399,64 @@ class CPV_Admin {
         global $wpdb;
         $jobs_imported = 0;
         
-        foreach ($children as $item) {
-            // Check if this is a job/role entry
-            $is_job = (isset($item['type']) && ($item['type'] === 'job' || $item['type'] === 'role')) ||
-                      (!isset($item['type']) && (isset($item['title']) || isset($item['name'])));
-            
-            if ($is_job) {
+        foreach ($children as $item_index => $item) {
+            // Check if this item has nested children (like Microsoft, GoDaddy)
+            if (isset($item['children']) && is_array($item['children'])) {
+                // It's a nested structure - process each child role
+                error_log("Processing nested company: " . ($item['name'] ?? 'Unknown'));
+                foreach ($item['children'] as $role_index => $role) {
+                    $start_date = isset($role['startYear']) ? $role['startYear'] . '-01-01' : date('Y-m-d');
+                    $end_date = isset($role['endYear']) && $role['endYear'] != date('Y') + 1 ? $role['endYear'] . '-12-31' : null;
+                    
+                    $position = isset($role['title']) ? $role['title'] : 'Unknown Position';
+                    $company = isset($item['name']) ? $item['name'] : 'Unknown Company';
+                    
+                    error_log("Processing nested role $role_index: $company - $position");
+                    
+                    // Skip if we don't have basic info
+                    if ($position === 'Unknown Position' && $company === 'Unknown Company') {
+                        continue;
+                    }
+                    
+                    $insert_data = array(
+                        'position' => $position,
+                        'company' => $company,
+                        'start_date' => $start_date,
+                        'end_date' => $end_date,
+                        'description' => isset($role['description']) ? $role['description'] : '',
+                        'skills' => isset($role['skills']) ? json_encode($role['skills']) : json_encode(array()),
+                        'achievements' => isset($role['achievements']) ? json_encode($role['achievements']) : json_encode(array()),
+                        'location' => isset($role['location']) ? $role['location'] : '',
+                        'company_image' => isset($role['company_image']) ? $role['company_image'] : '',
+                        'path_type' => $path_name,
+                        'path_color' => $path_color
+                    );
+                    
+                    error_log("Attempting to insert nested role: " . json_encode($insert_data));
+                    
+                    $result = $wpdb->insert($table_name, $insert_data);
+                    
+                    if ($result !== false) {
+                        $jobs_imported++;
+                        error_log("Successfully inserted nested role for $company - $position");
+                    } else {
+                        error_log("Failed to insert nested role: " . $wpdb->last_error);
+                    }
+                }
+            } else {
+                // It's a direct job entry
+                $is_job = (isset($item['type']) && ($item['type'] === 'job' || $item['type'] === 'role')) ||
+                          (!isset($item['type']) && (isset($item['title']) || isset($item['name'])));
+                
+                // Debug: Log what we're processing
+                error_log("Processing direct item $item_index in path $path_name: " . json_encode(array(
+                    'type' => $item['type'] ?? 'no_type',
+                    'name' => $item['name'] ?? 'no_name', 
+                    'title' => $item['title'] ?? 'no_title',
+                    'is_job' => $is_job
+                )));
+                
+                if ($is_job) {
                 // It's a job or role entry
                 $start_date = isset($item['startYear']) ? $item['startYear'] . '-01-01' : date('Y-m-d');
                 $end_date = isset($item['endYear']) && $item['endYear'] != date('Y') + 1 ? $item['endYear'] . '-12-31' : null;
@@ -413,61 +476,30 @@ class CPV_Admin {
                     continue;
                 }
                 
-                $result = $wpdb->insert(
-                    $table_name,
-                    array(
-                        'position' => $position,
-                        'company' => $company,
-                        'start_date' => $start_date,
-                        'end_date' => $end_date,
-                        'description' => isset($item['description']) ? $item['description'] : '',
-                        'skills' => isset($item['skills']) ? json_encode($item['skills']) : json_encode(array()),
-                        'achievements' => isset($item['achievements']) ? json_encode($item['achievements']) : json_encode(array()),
-                        'location' => isset($item['location']) ? $item['location'] : '',
-                        'company_image' => isset($item['company_image']) ? $item['company_image'] : '',
-                        'path_type' => $path_name,
-                        'path_color' => $path_color
-                    )
+                $insert_data = array(
+                    'position' => $position,
+                    'company' => $company,
+                    'start_date' => $start_date,
+                    'end_date' => $end_date,
+                    'description' => isset($item['description']) ? $item['description'] : '',
+                    'skills' => isset($item['skills']) ? json_encode($item['skills']) : json_encode(array()),
+                    'achievements' => isset($item['achievements']) ? json_encode($item['achievements']) : json_encode(array()),
+                    'location' => isset($item['location']) ? $item['location'] : '',
+                    'company_image' => isset($item['company_image']) ? $item['company_image'] : '',
+                    'path_type' => $path_name,
+                    'path_color' => $path_color
                 );
+                
+                error_log("Attempting to insert job: " . json_encode($insert_data));
+                
+                $result = $wpdb->insert($table_name, $insert_data);
                 
                 if ($result !== false) {
                     $jobs_imported++;
+                    error_log("Successfully inserted job for $company - $position");
+                } else {
+                    error_log("Failed to insert job: " . $wpdb->last_error);
                 }
-            } elseif (isset($item['children'])) {
-                // It's a nested structure (like Microsoft with multiple roles)
-                // Use the parent company name for all child roles
-                foreach ($item['children'] as $role) {
-                    $start_date = isset($role['startYear']) ? $role['startYear'] . '-01-01' : date('Y-m-d');
-                    $end_date = isset($role['endYear']) && $role['endYear'] != date('Y') + 1 ? $role['endYear'] . '-12-31' : null;
-                    
-                    $position = isset($role['title']) ? $role['title'] : (isset($role['name']) ? $role['name'] : 'Unknown Position');
-                    $company = isset($item['name']) ? $item['name'] : 'Unknown Company';
-                    
-                    // Skip if we don't have basic info
-                    if ($position === 'Unknown Position' && $company === 'Unknown Company') {
-                        continue;
-                    }
-                    
-                    $result = $wpdb->insert(
-                        $table_name,
-                        array(
-                            'position' => $position,
-                            'company' => $company,
-                            'start_date' => $start_date,
-                            'end_date' => $end_date,
-                            'description' => isset($role['description']) ? $role['description'] : '',
-                            'skills' => isset($role['skills']) ? json_encode($role['skills']) : json_encode(array()),
-                            'achievements' => isset($role['achievements']) ? json_encode($role['achievements']) : json_encode(array()),
-                            'location' => isset($role['location']) ? $role['location'] : '',
-                            'company_image' => isset($role['company_image']) ? $role['company_image'] : '',
-                            'path_type' => $path_name,
-                            'path_color' => $path_color
-                        )
-                    );
-                    
-                    if ($result !== false) {
-                        $jobs_imported++;
-                    }
                 }
             }
         }
