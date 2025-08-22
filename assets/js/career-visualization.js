@@ -221,7 +221,7 @@ function createHierarchicalVisualization(chartId, data, options) {
         (containerEl.classList.contains('cpv-theme-system') && window.matchMedia('(prefers-color-scheme: dark)').matches)
     );
     
-    // Add colored background bands for each path
+    // Add colored background bands for each path (extra wide for zoom/pan)
     const backgroundBands = svgGroup.append('g')
         .attr('class', 'path-backgrounds');
     
@@ -231,11 +231,12 @@ function createHierarchicalVisualization(chartId, data, options) {
         const bandTop = (prevY + path.y) / 2;
         const bandBottom = (path.y + nextY) / 2;
         
-        // Add colored background band
+        // Add colored background band with extra width for zoom/pan
+        const extraWidth = width * 3; // Make it 3x wider to handle zoom/pan
         backgroundBands.append('rect')
-            .attr('x', -margin.left)
+            .attr('x', -extraWidth)
             .attr('y', bandTop)
-            .attr('width', width + margin.left + margin.right)
+            .attr('width', extraWidth * 2 + width + margin.left + margin.right)
             .attr('height', bandBottom - bandTop)
             .style('fill', path.color)
             .style('opacity', isDarkTheme ? 0.35 : 0.25) // Brighter for dark theme
@@ -251,9 +252,10 @@ function createHierarchicalVisualization(chartId, data, options) {
             const prevPath = pathPositions[i - 1];
             const gridY = (prevPath.y + path.y) / 2;
             
+            const extraWidth = width * 3; // Match the background band width
             gridLines.append('line')
-                .attr('x1', -margin.left)
-                .attr('x2', width + 20)
+                .attr('x1', -extraWidth)
+                .attr('x2', extraWidth + width + margin.left + margin.right)
                 .attr('y1', gridY)
                 .attr('y2', gridY)
                 .style('stroke', '#999')
