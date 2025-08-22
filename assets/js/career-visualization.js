@@ -31,7 +31,7 @@ function initCareerVisualization(chartId, options) {
                 container.querySelector('.cpv-loading').style.display = 'none';
                 
                 // Always create tree visualization
-                createHierarchicalVisualization(chartId, careerData);
+                createHierarchicalVisualization(chartId, careerData, options);
                 
                 // Setup controls
                 setupControls(chartId);
@@ -58,12 +58,12 @@ function updateVisualization(viewType) {
             break;
         case 'tree':
         default:
-            createHierarchicalVisualization(currentChartId, careerData);
+            createHierarchicalVisualization(currentChartId, careerData, {});
             break;
     }
 }
 
-function createHierarchicalVisualization(chartId, data) {
+function createHierarchicalVisualization(chartId, data, options) {
     const container = document.getElementById(chartId);
     const containerParent = container.parentElement;
     
@@ -304,7 +304,7 @@ function createHierarchicalVisualization(chartId, data) {
     });
     
     // Get flow line style from options or default to curved
-    const flowLineStyle = options?.flow_lines || 'curved';
+    const flowLineStyle = (options && options.flow_lines) ? options.flow_lines : 'curved';
     
     // Create link generator based on style
     let linkGenerator;
