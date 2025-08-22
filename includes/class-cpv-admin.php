@@ -399,8 +399,14 @@ class CPV_Admin {
                 $end_date = isset($item['endYear']) && $item['endYear'] != date('Y') + 1 ? $item['endYear'] . '-12-31' : null;
                 
                 // Ensure we have required fields
-                $position = isset($item['title']) ? $item['title'] : (isset($item['name']) ? $item['name'] : 'Unknown Position');
+                $position = isset($item['title']) ? $item['title'] : 'Unknown Position';
                 $company = isset($item['name']) ? $item['name'] : 'Unknown Company';
+                
+                // For jobs with both title and name, name should be company and title should be position
+                if (isset($item['title']) && isset($item['name'])) {
+                    $position = $item['title'];
+                    $company = $item['name'];
+                }
                 
                 // Skip if we don't have basic info
                 if ($position === 'Unknown Position' && $company === 'Unknown Company') {
