@@ -3,7 +3,7 @@
  * Plugin Name: Career Progression Visualizer
  * Plugin URI: https://www.kylesmith.com/plugins
  * Description: Visualize your career journey using interactive D3.js charts
- * Version: 0.0.48
+ * Version: 0.0.55
  * Author: Kyle Smith
  * Author URI: https://www.kylesmith.com
  * License: GPL v2 or later
@@ -16,7 +16,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('CPV_VERSION', '0.0.48');
+define('CPV_VERSION', '0.0.55');
 define('CPV_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('CPV_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('CPV_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -57,6 +57,21 @@ function cpv_activate() {
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
     dbDelta($sql);
     
+    // Check for missing columns and add them
+    $existing_columns = $wpdb->get_col("DESCRIBE $table_name");
+    
+    if (!in_array('company_image', $existing_columns)) {
+        $wpdb->query("ALTER TABLE $table_name ADD COLUMN company_image varchar(500)");
+    }
+    
+    if (!in_array('location', $existing_columns)) {
+        $wpdb->query("ALTER TABLE $table_name ADD COLUMN location varchar(255)");
+    }
+    
+    if (!in_array('achievements', $existing_columns)) {
+        $wpdb->query("ALTER TABLE $table_name ADD COLUMN achievements text");
+    }
+    
     // Add default options
     add_option('cpv_version', CPV_VERSION);
     add_option('cpv_settings', array(
@@ -80,6 +95,9 @@ function cpv_deactivate() {
 
 // Initialize plugin
 function cpv_init() {
+    // Check and update database schema on every load
+    cpv_check_database_schema();
+    
     $career_progression = new Career_Progression();
     $career_progression->init();
     
@@ -88,3 +106,35 @@ function cpv_init() {
     $linkedin->init();
 }
 add_action('plugins_loaded', 'cpv_init');
+
+// Check and update database schema
+function cpv_check_database_schema() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'career_progression';
+    
+    // Check if table exists first
+    $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") === $table_name;
+    if (!$table_exists) {
+        // Table doesn't exist, run full activation
+        cpv_activate();
+        return;
+    }
+    
+    // Check for missing columns and add them
+    $existing_columns = $wpdb->get_col("DESCRIBE $table_name");
+    
+    if (!in_array('company_image', $existing_columns)) {
+        $wpdb->query("ALTER TABLE $table_name ADD COLUMN company_image varchar(500)");
+        error_log("Added company_image column to $table_name");
+    }
+    
+    if (!in_array('location', $existing_columns)) {
+        $wpdb->query("ALTER TABLE $table_name ADD COLUMN location varchar(255)");
+        error_log("Added location column to $table_name");
+    }
+    
+    if (!in_array('achievements', $existing_columns)) {
+        $wpdb->query("ALTER TABLE $table_name ADD COLUMN achievements text");
+        error_log("Added achievements column to $table_name");
+    }
+}
