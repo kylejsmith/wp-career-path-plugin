@@ -184,7 +184,7 @@
                         <?php if (count($existing_paths) > 0): ?>
                             <option disabled>──────────</option>
                         <?php endif; ?>
-                        <option value="__add_new__"><?php _e('Add new...', 'career-progression'); ?></option>
+                        <option value="__add_new__"><?php _e('Add another...', 'career-progression'); ?></option>
                     </select>
                     <input type="hidden" id="path_type" name="path_type" value="<?php echo $entry ? esc_attr($entry->path_type) : ''; ?>" required>
                     <p class="description"><?php _e('Select an existing path or add a new one', 'career-progression'); ?></p>
@@ -359,6 +359,15 @@
             function() { $(this).css('background', '#f0f0f0'); },
             function() { if (!$(this).hasClass('selected')) $(this).css('background', 'transparent'); }
         );
+        
+        // Add ESC key handler for modal
+        $(document).on('keydown', function(e) {
+            if (e.key === 'Escape' || e.keyCode === 27) {
+                if ($('#cpv-add-path-modal').is(':visible')) {
+                    closePathModal();
+                }
+            }
+        });
     });
     
     function closePathModal() {

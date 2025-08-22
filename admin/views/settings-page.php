@@ -1,5 +1,6 @@
 <div class="wrap">
     <h1><?php _e('Career Progression Settings', 'career-progression'); ?></h1>
+    <p style="color: #666; margin-bottom: 20px;">Version <?php echo CPV_VERSION; ?></p>
     
     <form method="post" action="options.php">
         <?php settings_fields('cpv_settings_group'); ?>

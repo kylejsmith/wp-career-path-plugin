@@ -316,10 +316,7 @@ function createHierarchicalVisualization(chartId, data) {
         .attr('class', 'link')
         .attr('d', linkGenerator)
         .style('fill', 'none')
-        .style('stroke', d => {
-            const pathNode = d.target.ancestors().find(ancestor => ancestor.data.type === 'path');
-            return pathNode ? pathNode.data.color : '#999';
-        })
+        .style('stroke', '#000')
         .style('stroke-width', d => {
             if (d.target.data.type === 'path') return 3;
             return 2;
