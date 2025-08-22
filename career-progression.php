@@ -3,7 +3,7 @@
  * Plugin Name: Career Progression Visualizer
  * Plugin URI: https://www.kylesmith.com/plugins
  * Description: Visualize your career journey using interactive D3.js charts
- * Version: 0.0.39
+ * Version: 0.0.40
  * Author: Kyle Smith
  * Author URI: https://www.kylesmith.com
  * License: GPL v2 or later
@@ -16,7 +16,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('CPV_VERSION', '0.0.39');
+define('CPV_VERSION', '0.0.40');
 define('CPV_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('CPV_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('CPV_PLUGIN_BASENAME', plugin_basename(__FILE__));

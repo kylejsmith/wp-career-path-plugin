@@ -68,7 +68,11 @@
           "startYear": 2015,
           "endYear": 2017,
           "type": "job",
-          "description": "Built web applications using React and Node.js"
+          "description": "Built web applications using React and Node.js",
+          "location": "San Francisco, CA",
+          "company_image": "https://example.com/techcorp-logo.png",
+          "skills": ["JavaScript", "React", "Node.js", "MongoDB"],
+          "achievements": ["Delivered 3 major features ahead of schedule", "Reduced page load time by 40%"]
         },
         {
           "name": "StartupXYZ",
@@ -77,7 +81,10 @@
           "startYear": 2017,
           "endYear": 2019,
           "type": "job",
-          "description": "Led development of mobile apps and APIs"
+          "description": "Led development of mobile apps and APIs",
+          "location": "Austin, TX",
+          "skills": ["React Native", "Python", "AWS", "Docker"],
+          "achievements": ["Led team of 4 developers", "Launched mobile app with 10k+ downloads"]
         },
         {
           "name": "BigTech Inc",
@@ -130,7 +137,7 @@
             <ul style="list-style-type: disc; margin-left: 20px;">
                 <li><strong>Root object:</strong> Must have "name", "startYear", and "children" array</li>
                 <li><strong>Path objects:</strong> Must have "name", "type": "path", "color", "startYear", and "children" array</li>
-                <li><strong>Job objects:</strong> Must have "name" (company), "title", "dates", "startYear", "endYear", "type": "job", and "description"</li>
+                <li><strong>Job objects:</strong> Must have "name" (company), "title", "dates", "startYear", "endYear", "type": "job", and "description". Optional: "location", "company_image", "skills" (array), "achievements" (array)</li>
                 <li><strong>Nested roles:</strong> Companies can have "children" array with multiple role objects (type: "role")</li>
                 <li><strong>Colors:</strong> Use hex color codes for path colors (e.g., "#48bb78")</li>
                 <li><strong>Years:</strong> Use 4-digit years. For current positions, use next year or future year</li>
