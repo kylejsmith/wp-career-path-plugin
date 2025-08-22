@@ -389,16 +389,29 @@ class CPV_Admin {
         $jobs_imported = 0;
         
         foreach ($children as $item) {
-            if ($item['type'] === 'job' || $item['type'] === 'role') {
+            // Check if this is a job/role entry
+            $is_job = (isset($item['type']) && ($item['type'] === 'job' || $item['type'] === 'role')) ||
+                      (!isset($item['type']) && (isset($item['title']) || isset($item['name'])));
+            
+            if ($is_job) {
                 // It's a job or role entry
                 $start_date = isset($item['startYear']) ? $item['startYear'] . '-01-01' : date('Y-m-d');
                 $end_date = isset($item['endYear']) && $item['endYear'] != date('Y') + 1 ? $item['endYear'] . '-12-31' : null;
                 
+                // Ensure we have required fields
+                $position = isset($item['title']) ? $item['title'] : (isset($item['name']) ? $item['name'] : 'Unknown Position');
+                $company = isset($item['name']) ? $item['name'] : 'Unknown Company';
+                
+                // Skip if we don't have basic info
+                if ($position === 'Unknown Position' && $company === 'Unknown Company') {
+                    continue;
+                }
+                
                 $result = $wpdb->insert(
                     $table_name,
                     array(
-                        'position' => isset($item['title']) ? $item['title'] : (isset($item['name']) ? $item['name'] : ''),
-                        'company' => isset($item['name']) ? $item['name'] : '',
+                        'position' => $position,
+                        'company' => $company,
                         'start_date' => $start_date,
                         'end_date' => $end_date,
                         'description' => isset($item['description']) ? $item['description'] : '',
@@ -421,11 +434,19 @@ class CPV_Admin {
                     $start_date = isset($role['startYear']) ? $role['startYear'] . '-01-01' : date('Y-m-d');
                     $end_date = isset($role['endYear']) && $role['endYear'] != date('Y') + 1 ? $role['endYear'] . '-12-31' : null;
                     
+                    $position = isset($role['title']) ? $role['title'] : (isset($role['name']) ? $role['name'] : 'Unknown Position');
+                    $company = isset($item['name']) ? $item['name'] : 'Unknown Company';
+                    
+                    // Skip if we don't have basic info
+                    if ($position === 'Unknown Position' && $company === 'Unknown Company') {
+                        continue;
+                    }
+                    
                     $result = $wpdb->insert(
                         $table_name,
                         array(
-                            'position' => isset($role['title']) ? $role['title'] : (isset($role['name']) ? $role['name'] : ''),
-                            'company' => $item['name'],
+                            'position' => $position,
+                            'company' => $company,
                             'start_date' => $start_date,
                             'end_date' => $end_date,
                             'description' => isset($role['description']) ? $role['description'] : '',
