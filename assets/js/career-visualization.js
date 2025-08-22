@@ -303,10 +303,24 @@ function createHierarchicalVisualization(chartId, data) {
             .attr('stop-opacity', 0.8);
     });
     
-    // Create curved links
-    const linkGenerator = d3.linkVertical()
-        .x(d => d.x)
-        .y(d => d.y);
+    // Get flow line style from options or default to curved
+    const flowLineStyle = options?.flow_lines || 'curved';
+    
+    // Create link generator based on style
+    let linkGenerator;
+    if (flowLineStyle === 'right_angle') {
+        // Right-angle links
+        linkGenerator = function(d) {
+            const source = d.source;
+            const target = d.target;
+            return `M${source.x},${source.y}L${target.x},${source.y}L${target.x},${target.y}`;
+        };
+    } else {
+        // Curved links (default)
+        linkGenerator = d3.linkVertical()
+            .x(d => d.x)
+            .y(d => d.y);
+    }
     
     // Draw links
     svgGroup.selectAll('.link')
@@ -428,35 +442,38 @@ function createHierarchicalVisualization(chartId, data) {
     
     // Auto-fit the entire tree in view on initial load
     setTimeout(() => {
-        // Calculate the bounding box of all nodes
-        const allNodes = root.descendants().filter(d => d.data.type !== 'path' && d.data.name !== 'Career Journey');
+        // Calculate the bounding box of all visible nodes (excluding root)
+        const allNodes = root.descendants().filter(d => d.data.name !== 'Career Journey');
         if (allNodes.length === 0) return;
         
         const xExtent = d3.extent(allNodes, d => d.x);
         const yExtent = d3.extent(allNodes, d => d.y);
         
-        // Add 20px padding as requested
-        const padding = 20;
+        // Add padding
+        const padding = 40;
         const xRange = xExtent[1] - xExtent[0] + (padding * 2);
         const yRange = yExtent[1] - yExtent[0] + (padding * 2);
         
-        // Calculate scale to fit container (not just square)
-        const scaleX = width / xRange;
-        const scaleY = height / yRange;
-        const scale = Math.min(scaleX, scaleY, 2); // Allow up to 2x zoom
+        // Calculate scale to fit available space
+        const scaleX = (width - padding) / xRange;
+        const scaleY = (height - padding) / yRange;
+        const scale = Math.min(scaleX, scaleY, 1.5); // Limit max zoom to 1.5x
         
-        // Calculate center
+        // Calculate the center point of the content
         const centerX = (xExtent[0] + xExtent[1]) / 2;
         const centerY = (yExtent[0] + yExtent[1]) / 2;
         
-        // Apply transform to fit all content
+        // Calculate the translation to center the content
+        const translateX = (width / 2) - (centerX * scale);
+        const translateY = (height / 2) - (centerY * scale);
+        
+        // Apply the transform
         const transform = d3.zoomIdentity
-            .translate(width / 2 + margin.left, height / 2 + margin.top)
-            .scale(scale)
-            .translate(-centerX, -centerY);
+            .translate(translateX, translateY)
+            .scale(scale);
         
         svg.call(zoomBehavior.transform, transform);
-    }, 100);
+    }, 200);
 }
 
 function createTimelineVisualization(chartId, data) {

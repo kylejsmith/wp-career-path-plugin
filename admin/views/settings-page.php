@@ -98,6 +98,25 @@
                 </td>
             </tr>
             
+            <tr>
+                <th scope="row">
+                    <label for="cpv_flow_lines"><?php _e('Flow Line Style', 'career-progression'); ?></label>
+                </th>
+                <td>
+                    <select id="cpv_flow_lines" name="cpv_settings[flow_lines]">
+                        <option value="curved" <?php selected($settings['flow_lines'] ?? 'curved', 'curved'); ?>>
+                            <?php _e('Curved Lines', 'career-progression'); ?>
+                        </option>
+                        <option value="right_angle" <?php selected($settings['flow_lines'] ?? '', 'right_angle'); ?>>
+                            <?php _e('Right-Angle Lines', 'career-progression'); ?>
+                        </option>
+                    </select>
+                    <p class="description">
+                        <?php _e('Choose the style of connecting lines between career nodes', 'career-progression'); ?>
+                    </p>
+                </td>
+            </tr>
+            
         </table>
         
         <?php submit_button(); ?>
@@ -152,7 +171,8 @@
                 type: 'tree',
                 width: defaultWidth,
                 height: defaultHeight,
-                theme: $('#cpv_theme').val() || 'light'
+                theme: $('#cpv_theme').val() || 'light',
+                flow_lines: $('#cpv_flow_lines').val() || 'curved'
             };
             
             // Extract attributes from shortcode
@@ -215,7 +235,7 @@
         });
         
         // Auto-update preview when settings change
-        $('#cpv_theme, #cpv_date_format, #cpv_width, #cpv_height').on('change', function() {
+        $('#cpv_theme, #cpv_date_format, #cpv_width, #cpv_height, #cpv_flow_lines').on('change', function() {
             renderPreview();
         });
         

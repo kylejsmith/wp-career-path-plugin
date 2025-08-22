@@ -302,7 +302,11 @@ class CPV_Admin {
                 'startYear' => $start_year,
                 'endYear' => $end_year,
                 'type' => 'job',
-                'description' => $job->description
+                'description' => $job->description,
+                'location' => $job->location,
+                'company_image' => $job->company_image,
+                'skills' => $job->skills ? json_decode($job->skills) : array(),
+                'achievements' => $job->achievements ? json_decode($job->achievements) : array()
             );
             
             $paths[$path_type]['children'][] = $job_entry;
@@ -374,10 +378,10 @@ class CPV_Admin {
                         'start_date' => $start_date,
                         'end_date' => $end_date,
                         'description' => $item['description'] ?? '',
-                        'skills' => json_encode(array()),
-                        'achievements' => json_encode(array()),
-                        'location' => '',
-                        'company_image' => '',
+                        'skills' => isset($item['skills']) ? json_encode($item['skills']) : json_encode(array()),
+                        'achievements' => isset($item['achievements']) ? json_encode($item['achievements']) : json_encode(array()),
+                        'location' => $item['location'] ?? '',
+                        'company_image' => $item['company_image'] ?? '',
                         'path_type' => $path_name,
                         'path_color' => $path_color
                     )
@@ -397,10 +401,10 @@ class CPV_Admin {
                             'start_date' => $start_date,
                             'end_date' => $end_date,
                             'description' => $role['description'] ?? '',
-                            'skills' => json_encode(array()),
-                            'achievements' => json_encode(array()),
-                            'location' => '',
-                            'company_image' => '',
+                            'skills' => isset($role['skills']) ? json_encode($role['skills']) : json_encode(array()),
+                            'achievements' => isset($role['achievements']) ? json_encode($role['achievements']) : json_encode(array()),
+                            'location' => $role['location'] ?? '',
+                            'company_image' => $role['company_image'] ?? '',
                             'path_type' => $path_name,
                             'path_color' => $path_color
                         )

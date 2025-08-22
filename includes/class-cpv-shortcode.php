@@ -21,12 +21,14 @@ class CPV_Shortcode {
         $default_width = isset($settings['width']) ? $settings['width'] : '1200px';
         $default_height = isset($settings['height']) ? $settings['height'] : '600px';
         $default_theme = isset($settings['theme']) ? $settings['theme'] : 'light';
+        $default_flow_lines = isset($settings['flow_lines']) ? $settings['flow_lines'] : 'curved';
         
         // Parse attributes
         $atts = shortcode_atts(array(
             'width' => $default_width,
             'height' => $default_height,
-            'theme' => $default_theme
+            'theme' => $default_theme,
+            'flow_lines' => $default_flow_lines
         ), $atts, 'career_progression');
         
         // Generate unique ID for this instance
