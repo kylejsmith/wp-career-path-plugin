@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm:*)",
+      "Bash(zip:*)",
+      "Bash(chmod:*)",
+      "Bash(php:*)",
+      "Bash(python3:*)",
+      "Bash(grep:*)"
+    ],
+    "additionalDirectories": [
+      "/home/kyle/code"
+    ]
+  }
+}
